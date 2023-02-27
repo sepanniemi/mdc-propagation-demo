@@ -1,10 +1,8 @@
 package com.sepanniemi.boot.mdcpropagationdemo;
 
 import io.micrometer.context.ContextRegistry;
-import io.micrometer.context.ThreadLocalAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -15,8 +13,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
-
-import java.util.Map;
+import reactor.util.context.Context;
 
 @Configuration
 public class MdcPropagationConfig {
@@ -25,7 +22,7 @@ public class MdcPropagationConfig {
 
     public MdcPropagationConfig() {
         Hooks.enableAutomaticContextPropagation();
-        ContextRegistry.getInstance().registerThreadLocalAccessor(new MdcAccessor());
+        ContextRegistry.getInstance().registerThreadLocalAccessor(new ReactorRequestContextMdcBridge());
         log.info("MDC Propagation configured.");
     }
 
@@ -38,40 +35,16 @@ public class MdcPropagationConfig {
     }
 
     private Mono<Void> initMdc(HttpHandler delegate, ServerHttpRequest request, ServerHttpResponse response) {
-
-        log.debug("Setting up MDC with header values...");
         String requestId = request.getHeaders().getFirst("X-Request-ID");
         String userAgent = request.getHeaders().getFirst("User-Agent");
-        MDC.put("requestId", requestId);
-        MDC.put("userAgent", userAgent);
-        log.debug("MDC values set.");
+        RequestContext requestContext = new RequestContext(requestId, userAgent);
         return delegate
                 .handle(request, response)
-                .contextCapture();
+                .contextWrite(createReactorRequestContext(requestContext));
     }
 
-    static class MdcAccessor implements ThreadLocalAccessor<Map<String, String>> {
-
-        static final String KEY = "mdc";
-
-        @Override
-        public Object key() {
-            return KEY;
-        }
-
-        @Override
-        public Map<String, String> getValue() {
-            return MDC.getCopyOfContextMap();
-        }
-
-        @Override
-        public void setValue(Map<String, String> value) {
-            MDC.setContextMap(value);
-        }
-
-        @Override
-        public void reset() {
-            MDC.clear();
-        }
+    private Context createReactorRequestContext(RequestContext requestContext) {
+        log.debug("Create reactor context for the current request context={}", requestContext);
+        return Context.of(RequestContext.KEY, requestContext);
     }
 }
