@@ -1,6 +1,7 @@
 package com.sepanniemi.boot.mdcpropagationdemo;
 
 import io.restassured.RestAssured;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,15 +36,18 @@ class MdcPropagationDemoApplicationTests {
                     }
             );
         }
-		latch.await();
+        latch.await();
     }
 
     private static void requestGetCars() {
+        String requestId = UUID.randomUUID().toString().substring(10);
         RestAssured.given()
                 .basePath("/cars")
-                .header("X-Request-Id", UUID.randomUUID().toString().substring(10))
+                .header("X-Request-Id", requestId)
                 .get()
                 .then()
-                .statusCode(HttpStatus.OK.value());
+                .statusCode(HttpStatus.OK.value())
+                .and()
+                .header("X-Request-Id", Matchers.equalTo(requestId));
     }
 }

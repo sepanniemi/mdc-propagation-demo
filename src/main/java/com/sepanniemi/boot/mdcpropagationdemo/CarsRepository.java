@@ -12,7 +12,7 @@ import java.util.List;
 @Component
 public class CarsRepository {
 
-    Logger log = LoggerFactory.getLogger(CarsRepository.class);
+    private static Logger log = LoggerFactory.getLogger(CarsRepository.class);
 
     Cars cars = new Cars(
             List.of(
@@ -25,6 +25,7 @@ public class CarsRepository {
     public Mono<Cars> getCars() {
         return Mono.fromCallable(() -> cars)
                 .delayElement(Duration.ofMillis(200))
+                .doFirst(() -> log.debug("Processing delayed..."))
                 .doOnSuccess(c -> log.debug("Returning cars={}", c))
                 .subscribeOn(Schedulers.boundedElastic())
                 .publishOn(Schedulers.parallel());
