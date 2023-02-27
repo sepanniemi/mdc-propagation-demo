@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.List;
 
 @Component
@@ -23,8 +24,10 @@ public class CarsRepository {
 
     public Mono<Cars> getCars() {
         return Mono.fromCallable(() -> cars)
+                .delayElement(Duration.ofMillis(200))
                 .doOnSuccess(c -> log.debug("Returning cars={}", c))
-                .subscribeOn(Schedulers.parallel());
+                .subscribeOn(Schedulers.boundedElastic())
+                .publishOn(Schedulers.parallel());
 
     }
 }

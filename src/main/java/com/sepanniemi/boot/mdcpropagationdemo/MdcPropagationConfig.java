@@ -23,6 +23,12 @@ public class MdcPropagationConfig {
 
     Logger log = LoggerFactory.getLogger(MdcPropagationConfig.class);
 
+    public MdcPropagationConfig() {
+        Hooks.enableAutomaticContextPropagation();
+        ContextRegistry.getInstance().registerThreadLocalAccessor(new MdcAccessor());
+        log.info("MDC Propagation configured.");
+    }
+
     @Order(Ordered.HIGHEST_PRECEDENCE)
     @Bean
     public HttpHandlerDecoratorFactory mdcReactorContextDecorator() {
@@ -32,8 +38,7 @@ public class MdcPropagationConfig {
     }
 
     private Mono<Void> initMdc(HttpHandler delegate, ServerHttpRequest request, ServerHttpResponse response) {
-        Hooks.enableAutomaticContextPropagation();
-        ContextRegistry.getInstance().registerThreadLocalAccessor(new MdcAccessor());
+
         log.debug("Setting up MDC with header values...");
         String requestId = request.getHeaders().getFirst("X-Request-ID");
         String userAgent = request.getHeaders().getFirst("User-Agent");
