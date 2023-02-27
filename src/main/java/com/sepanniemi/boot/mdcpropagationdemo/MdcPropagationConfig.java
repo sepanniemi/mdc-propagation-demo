@@ -18,7 +18,7 @@ import reactor.util.context.Context;
 @Configuration
 public class MdcPropagationConfig {
 
-    Logger log = LoggerFactory.getLogger(MdcPropagationConfig.class);
+    private static Logger log = LoggerFactory.getLogger(MdcPropagationConfig.class);
 
     public MdcPropagationConfig() {
         Hooks.enableAutomaticContextPropagation();
@@ -31,10 +31,10 @@ public class MdcPropagationConfig {
     public HttpHandlerDecoratorFactory mdcReactorContextDecorator() {
         return delegate ->
                 (request, response) ->
-                        initMdc(delegate, request, response);
+                        initRequestContext(delegate, request, response);
     }
 
-    private Mono<Void> initMdc(HttpHandler delegate, ServerHttpRequest request, ServerHttpResponse response) {
+    private Mono<Void> initRequestContext(HttpHandler delegate, ServerHttpRequest request, ServerHttpResponse response) {
         String requestId = request.getHeaders().getFirst("X-Request-ID");
         String userAgent = request.getHeaders().getFirst("User-Agent");
         RequestContext requestContext = new RequestContext(requestId, userAgent);

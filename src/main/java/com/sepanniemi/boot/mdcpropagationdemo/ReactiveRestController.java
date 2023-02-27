@@ -30,17 +30,18 @@ public class ReactiveRestController {
     }
 
     private static Mono<ResponseEntity<Cars>> contextualResponse(Mono<Cars> carsMono, ContextView contextView) {
-        return carsMono.map(
-                c -> ok(contextView, c)
-        );
+        String requestId =
+                contextView.<RequestContext>getOrEmpty(RequestContext.KEY)
+                        .map(requestContext -> requestContext.requestId())
+                        .orElse("undefined");
+        return carsMono.map(c -> ok(requestId, c));
     }
 
-    private static ResponseEntity<Cars> ok(ContextView contextView, Cars cars) {
-        RequestContext requestContext = contextView.<RequestContext>get(RequestContext.KEY);
-        log.debug("Returning cars={} for requestId={}", cars, requestContext.requestId());
+    private static ResponseEntity<Cars> ok(String requestId, Cars cars) {
+        log.debug("Returning cars={} for requestId={}", cars, requestId);
         return ResponseEntity
                 .ok()
-                .header("X-Request-Id", requestContext.requestId())
+                .header("X-Request-Id", requestId)
                 .body(cars);
     }
 }
